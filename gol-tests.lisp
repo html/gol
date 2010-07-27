@@ -104,6 +104,22 @@ DESCRIBE-ing them."
              (t t t)))
          5)
 
+(deftest live-neighbours-count-4
+         (gol:live-neighbours-count 
+           1 0
+           '((nil nil nil)
+             (t   t   t)
+             (nil nil nil)))
+         3)
+         
+(deftest live-neighbours-count-5
+         (gol:live-neighbours-count 
+           0 0
+           '((nil nil nil)
+             (t   t   t)
+             (nil nil nil)))
+         2)
+
 (deftest cell-value-must-alive
          (gol:cell-value 
            0 0
@@ -145,7 +161,7 @@ DESCRIBE-ing them."
              (nil nil nil)
              (nil nil nil)))))
 
-(addtest 'next-generation-1
+(addtest 'next-generation-2
          (ensure (equal (gol:next-generation 
            '((t   t   t)
              (t   t   t)
@@ -153,3 +169,12 @@ DESCRIBE-ing them."
            '((t   nil t)
              (nil nil nil)
              (t   nil t)))))
+
+(addtest 'next-generation-3
+         (ensure (equal (gol:next-generation 
+           '((nil   t   nil)
+             (nil   t   nil)
+             (nil   t   nil)))
+           '((nil   nil nil)
+             (t     t   t)
+             (nil   nil nil)))))

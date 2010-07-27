@@ -19,16 +19,12 @@
 ;;;; TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 ;;;; SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-;(asdf:operate 'asdf:load-op :cl-opengl)
-;(require :cl-opengl)
-;(require :cl-glut)
-
 (defpackage :gol
   (:use #:cl))
 
 (in-package :gol)
 
-(export '(xycell cell live-neighbours-count cell-value next-generation))
+(export '(xycell cell live-neighbours-count cell-value next-generation do-cells setxycell))
 
 (defparameter *can-out-of-bounds* nil)
 
@@ -39,6 +35,10 @@
 (defun xycell(x y cells)
   (xcell x 
          (xcell y cells)))
+
+(defmacro setxycell(x y cells value)
+  `(setf (nth ,y 
+             (nth ,x ,cells)) ,value))
 
 (defun neighbours-values(x y c)
   (list 
@@ -63,6 +63,13 @@
       (t (xycell x y cells)))))
 
 (defun next-generation(cells)
-  (loop for x from 0 to (1- (length cells))
-        collect (loop for y from 0 to (1- (length (nth x cells)))
+  (loop for y from 0 to (1- (length cells))
+        collect (loop for x from 0 to (1- (length (nth y cells)))
                       collect (cell-value x y cells))))
+                      
+(defmacro do-cells(cells &body body)
+    `(dotimes (y (length ,cells))
+        (dotimes (x (length (nth y ,cells)))
+           (let ((cell (nth y (nth x ,cells))))
+              (funcall (lambda (x y cell)
+                         ,@body) x y cell)))))
