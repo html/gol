@@ -22,7 +22,7 @@
   (if (and (>= (- (get-universal-time) *generation-timer*) 1) (not *paused*))
     (progn
       (update-generation-timer)
-      (setf *cells* (gol:next-generation *cells*)))))
+      (gol:next-generation *cells*))))
 
 (defun display-chooser()
   (with-pushed-matrix
@@ -63,7 +63,8 @@
   (gl:light :light0 :position #(5.0 5.0 10.0 0.0))
   (gl:enable :cull-face :lighting :light0 :depth-test)
   (gl:clear-color 0 0 0 0)
-  #+l(gl:shade-model :flat))
+  ;;;(gl:shade-model :flat)
+  )
 
 (defmethod glut:display ((w cube-window))
   (gl:clear :color-buffer :depth-buffer)
@@ -74,11 +75,11 @@
   (gl:scale 1 1 1)
   (display-chooser)
   (display-cells)
-  (display-pause-status)
+  #+l(display-pause-status)
   (gl:flush)
   (glut:swap-buffers))
   
-#+l(defmethod glut:idle ((window cube-window))
+(defmethod glut:idle ((window cube-window))
   (glut:post-redisplay))
 
 (defmethod glut:reshape ((w cube-window) width height)
@@ -125,6 +126,6 @@
 
 (defun run ()
   "Run application"
-  (let ((glut:*run-main-loop-after-display* nil)(*cells* '((nil nil nil t)(t t t nil)(t nil nil nil)(nil t nil t))))
+  (let ((glut:*run-main-loop-after-display* nil)(*cells* (make-live-cells '((nil nil nil t)(t t t nil)(t nil nil nil)(nil t nil t)))))
       (rb-cube)
     (glut:main-loop)))

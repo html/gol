@@ -24,17 +24,39 @@
 
 (in-package :gol)
 
-(export '(xycell cell live-neighbours-count cell-value next-generation do-cells setxycell))
+(export '(xycell cell live-neighbours-count cell-value next-generation do-cells setxycell list-or-live-cells-instance-to-list make-live-cells cells-matrix))
 
-(defparameter *can-out-of-bounds* nil)
+(defclass live-cells()
+  ((cells-matrix
+     :accessor :cells-matrix
+     :initarg :cells-matrix)
+   ;;;(can-expand-edges-p :initform t :initarg :can-expand-edges-p)
+   (cells-x-out :initform 0 :accessor :cells-x-out)
+   (cells-y-out :initform 0 :accessor :cells-y-out)))
+
+(defun make-live-cells(&optional cells)
+  (make-instance 'live-cells :cells-matrix cells))
+
+(defun list-or-live-cells-instance-to-list(list-or-live-cells-instance)
+  (if (listp list-or-live-cells-instance)
+      list-or-live-cells-instance
+      (slot-value list-or-live-cells-instance 'cells-matrix)))
 
 (defun xcell(x cells)
     (if (and (>= x 0) (< x (length cells)))
              (nth x cells)))
 
 (defun xycell(x y cells)
-  (xcell x 
-         (xcell y cells)))
+  (if (listp cells)
+      (xcell x 
+             (xcell y cells))
+      (cell-by-coords cells x y)))
+
+(defmethod cell-by-coords(live-cells x y)
+  (with-slots (cells-x-out cells-y-out) live-cells
+      (let ((x (+ cells-x-out x))
+            (y (+ cells-y-out y)))
+        (xycell x y (slot-value live-cells 'cells-matrix)))))
 
 (defmacro setxycell(x y cells value)
   `(setf (nth ,y 
@@ -63,13 +85,30 @@
       (t (xycell x y cells)))))
 
 (defun next-generation(cells)
-  (loop for y from 0 to (1- (length cells))
-        collect (loop for x from 0 to (1- (length (nth y cells)))
-                      collect (cell-value x y cells))))
+  (if (listp cells)
+      (loop for y from 0 to (1- (length cells))
+            collect (loop for x from 0 to (1- (length (nth y cells)))
+                          collect (cell-value x y cells)))
+      (progn 
+        (let* ((matrix (slot-value cells 'cells-matrix))
+              (newmatrix (mapcar 
+                (lambda (list) (append (list nil) list (list nil)))
+                (append 
+                (list (make-list (length (first matrix))))
+                matrix
+                (list (make-list (length (first matrix))))))))
+          (setf (slot-value cells 'cells-matrix) (next-generation newmatrix))
+          (incf (slot-value cells 'cells-x-out) 1)
+          (incf (slot-value cells 'cells-y-out) 1)
+          (slot-value cells 'cells-matrix)))))
                       
 (defmacro do-cells(cells &body body)
-    `(dotimes (y (length ,cells))
-        (dotimes (x (length (nth y ,cells)))
-           (let ((cell (nth y (nth x ,cells))))
-              (funcall (lambda (x y cell)
-                         ,@body) x y cell)))))
+    `(let* ((listp (listp ,cells))
+            (cells (if listp ,cells (slot-value ,cells 'cells-matrix)))
+            (xt (if listp 0 (slot-value ,cells 'cells-x-out)))
+            (yt (if listp 0 (slot-value ,cells 'cells-y-out))))
+            (dotimes (y (length cells))
+                (dotimes (x (length (nth y cells)))
+                   (let ((cell (nth y (nth x cells))))
+                      (funcall (lambda (x y cell)
+                                 ,@body) (- x xt) (- y yt) cell))))))

@@ -72,6 +72,9 @@ DESCRIBE-ing them."
       (mapc #'describe results))
     (values-list results)))
 
+(defun m(cells)
+  (slot-value (gol:make-live-cells cells) 'cells-matrix))
+
 (deftest xycell-1
          (gol:xycell 0 0 nil)
          nil)
@@ -160,6 +163,123 @@ DESCRIBE-ing them."
            '((nil nil nil)
              (nil nil nil)
              (nil nil nil)))))
+
+(addtest 'next-generation-2
+         (ensure (equal (gol:next-generation 
+           '((t   t   t)
+             (t   t   t)
+             (t   t   t)))
+           '((t   nil t)
+             (nil nil nil)
+             (t   nil t)))))
+
+(addtest 'next-generation-3
+         (ensure (equal (gol:next-generation 
+           '((nil   t   nil)
+             (nil   t   nil)
+             (nil   t   nil)))
+           '((nil   nil nil)
+             (t     t   t)
+             (nil   nil nil)))))
+
+(addtest 'list-or-live-cells-instance-to-list-1
+         (ensure (equal 
+                   (gol:list-or-live-cells-instance-to-list (gol:make-live-cells '((1 2 3))))
+                   '((1 2 3)))))
+
+(deftest xycell-with-live-cells-instance-1
+         (gol:xycell 0 0 (gol:make-live-cells))
+         nil)
+
+; Start here
+
+(deftest xycell-with-live-cells-instance-2
+         (gol:xycell 0 0 (gol:make-live-cells '((t))))
+         t)
+
+(deftest live-neighbours-count-1
+         (gol:live-neighbours-count 
+           1 1
+           (gol:make-live-cells '((t t t)
+             (t t t)
+             (t t t))))
+         8)
+
+(deftest live-neighbours-count-2
+         (gol:live-neighbours-count 
+           0 0
+           (gol:make-live-cells '((t t t)
+             (t t t)
+             (t t t))))
+         3)
+
+(deftest live-neighbours-count-3
+         (gol:live-neighbours-count 
+           0 1
+           (gol:make-live-cells '((t t t)
+             (t t t)
+             (t t t))))
+         5)
+
+(deftest live-neighbours-count-4
+         (gol:live-neighbours-count 
+           1 0
+           (gol:make-live-cells '((nil nil nil)
+             (t   t   t)
+             (nil nil nil))))
+         3)
+         
+(deftest live-neighbours-count-5
+         (gol:live-neighbours-count 
+           0 0
+           (gol:make-live-cells '((nil nil nil)
+             (t   t   t)
+             (nil nil nil))))
+         2)
+
+(deftest cell-value-must-alive
+         (gol:cell-value 
+           0 0
+           (gol:make-live-cells '((nil t t)
+             (t t t)
+             (t t t))))
+         t)
+
+(deftest cell-value-must-stay-old
+         (gol:cell-value 
+           0 0
+           (gol:make-live-cells '((1 nil t)
+             (t t  t)
+             (t t  t))))
+         1)
+
+(deftest cell-value-must-die-due-to-loneliness
+         (gol:cell-value 
+           0 0
+           (gol:make-live-cells '((t nil t)
+             (t nil t)
+             (t t t))))
+         nil)
+
+(deftest cell-value-must-die
+         (gol:cell-value 
+           1 1
+           (gol:make-live-cells '((t t t)
+             (t t t)
+             (t t t))))
+         nil)
+
+;;; All tests below need to be  fixed
+(addtest 'next-generation-1
+         (let* ((cells (gol:make-live-cells 
+             '((t   nil t)
+             (nil nil nil)
+             (t   nil t))))
+               (next-gen (gol:next-generation cells)))
+         #+l(ensure (equal (print (slot-value cells 'gol:cells-matrix))
+           '((nil nil nil)
+             (nil nil nil)
+             (nil nil nil))))))
 
 (addtest 'next-generation-2
          (ensure (equal (gol:next-generation 
