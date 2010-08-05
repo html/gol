@@ -24,7 +24,7 @@
 
 (in-package :gol)
 
-(export '(xycell cell live-neighbours-count cell-value next-generation do-cells setxycell list-or-live-cells-instance-to-list make-live-cells cells-matrix))
+(export '(xycell cell live-neighbours-count cell-value next-generation do-cells setxycell list-or-live-cells-instance-to-list make-live-cells cells-matrix extreme-coord cells-x-out cells-y-out))
 
 (defclass live-cells()
   ((cells-matrix
@@ -33,6 +33,20 @@
    ;;;(can-expand-edges-p :initform t :initarg :can-expand-edges-p)
    (cells-x-out :initform 0 :accessor :cells-x-out)
    (cells-y-out :initform 0 :accessor :cells-y-out)))
+
+(defmethod cell-by-coords(live-cells x y)
+  (with-slots (cells-x-out cells-y-out) live-cells
+      (let ((x (+ cells-x-out x))
+            (y (+ cells-y-out y)))
+        (xycell x y (slot-value live-cells 'cells-matrix)))))
+
+(defmethod extreme-coord(live-cells way)
+  (case way
+    (:up (- (slot-value live-cells 'cells-y-out)))
+    (:down (- (length (slot-value live-cells 'cells-matrix)) (slot-value live-cells 'cells-y-out)))
+    (:left (- (slot-value live-cells 'cells-x-out)))
+    (:right (- (length (first (slot-value live-cells 'cells-matrix))) (slot-value live-cells 'cells-x-out)))))
+
 
 (defun make-live-cells(&optional cells)
   (make-instance 'live-cells :cells-matrix cells))
@@ -52,15 +66,12 @@
              (xcell y cells))
       (cell-by-coords cells x y)))
 
-(defmethod cell-by-coords(live-cells x y)
-  (with-slots (cells-x-out cells-y-out) live-cells
-      (let ((x (+ cells-x-out x))
-            (y (+ cells-y-out y)))
-        (xycell x y (slot-value live-cells 'cells-matrix)))))
-
 (defmacro setxycell(x y cells value)
-  `(setf (nth ,y 
-             (nth ,x ,cells)) ,value))
+  `(let* ((listp (listp ,cells))
+         (y (if listp ,y (+ ,y (slot-value ,cells 'cells-y-out))))
+         (x (if listp ,x (+ ,x (slot-value ,cells 'cells-x-out)))))
+         (setf (nth y 
+             (nth x (if listp ,cells (slot-value ,cells 'cells-matrix)))) ,value)))
 
 (defun neighbours-values(x y c)
   (list 

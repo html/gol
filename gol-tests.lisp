@@ -269,6 +269,27 @@ DESCRIBE-ing them."
              (t t t))))
          nil)
 
+(let ((cells (gol:make-live-cells '((t t t)))))
+     (setf (slot-value cells 'gol:cells-x-out) 1)
+     (setf (slot-value cells 'gol:cells-y-out) 2)
+
+     (deftest extreme-coord-up
+              (gol:extreme-coord cells :up)
+              -2)
+
+     (deftest extreme-coord-down
+              (gol:extreme-coord cells :down)
+              -1)
+
+     (deftest extreme-coord-left
+              (gol:extreme-coord cells :left)
+              -1)
+
+     (deftest extreme-coord-right
+              (gol:extreme-coord cells :right)
+              2)
+     )
+
 ;;; All tests below need to be  fixed
 (addtest 'next-generation-1
          (let* ((cells (gol:make-live-cells 

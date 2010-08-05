@@ -12,6 +12,9 @@
 (defvar *pause-status-coords* nil)
 
 (defun display-cells()
+  (gl:line-width 1)
+  (gl:material :front :ambient-and-diffuse #(1 1 1 1.0)) ; red
+
   (do-cells *cells*
             (let ((x gol::x)(y gol::y)(cell gol::cell))
             (with-pushed-matrix 
@@ -19,6 +22,7 @@
               (glut:wire-cube 1)
               (if cell
                   (glut:solid-sphere 0.5 50 50)))))
+
   (if (and (>= (- (get-universal-time) *generation-timer*) 1) (not *paused*))
     (progn
       (update-generation-timer)
@@ -26,9 +30,23 @@
 
 (defun display-chooser()
   (with-pushed-matrix
-    (gl:color 0.5 0 0)
+    #+l(gl:color 0.5 0 0)
     (gl:translate (first *chooser-coords*) (- (second *chooser-coords*)) 1)
   (glut:solid-torus 0.1 0.3 4 20)))
+
+(defun display-borders()
+  (with-pushed-matrix
+    (gl:line-width 10)
+    (gl:material :front :ambient-and-diffuse #(1 1 0 1.0)) ; red
+    (gl:with-primitives :line-strip
+                        (let ((up (- (gol:extreme-coord *cells* :up) 0.5))
+                              (down (- (gol:extreme-coord *cells* :down) 0.5))
+                              (left (- (- (gol:extreme-coord *cells* :left) 0.5)))
+                              (right (- (- (gol:extreme-coord *cells* :right) 0.5))))
+                        (gl:vertex up left .5)
+                        (gl:vertex up right .5)
+                        (gl:vertex down right .5)
+                        (gl:vertex down left .5)))))
 
 (defun update-generation-timer()
   (setf *generation-timer* (get-universal-time)))
@@ -75,6 +93,7 @@
   (gl:scale 1 1 1)
   (display-chooser)
   (display-cells)
+  (display-borders)
   #+l(display-pause-status)
   (gl:flush)
   (glut:swap-buffers))
