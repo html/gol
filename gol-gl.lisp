@@ -4,16 +4,19 @@
   (:shadow #:get-string #:close #:get #:special))
 
 (in-package :gol-gl-frontend)
-(defvar *cells* nil)
-(defvar *new-cells nil)
-(defvar *chooser-coords* (list 0 0))
-(defvar *generation-timer* (get-universal-time))
-(defvar *paused* nil)
-(defvar *pause-status-coords* nil)
+(defparameter *cells* nil)
+(defparameter *new-cells nil)
+(defparameter *chooser-coords* (list 0 0))
+(defparameter *generation-timer* (get-universal-time))
+(defparameter *paused* nil)
+(defparameter *pause-status-coords* nil)
+(defparameter *extreme-points* nil)
+(defparameter *extreme-points-grow* nil)
+(defparameter *display-borders-counter* 0)
 
 (defun display-cells()
   (gl:line-width 1)
-  (gl:material :front :ambient-and-diffuse #(1 1 1 1.0)) ; red
+  (gl:material :front :ambient-and-diffuse #(1.0 1.0 1.0 1.0)) ; red
 
   (do-cells *cells*
             (let ((x gol::x)(y gol::y)(cell gol::cell))
@@ -25,6 +28,13 @@
 
   (if (and (>= (- (get-universal-time) *generation-timer*) 1) (not *paused*))
     (progn
+
+      (dolist (way (list :up :down :left :right))
+        (let ((old-coord (getf *extreme-points* way))
+              (new-coord (gol:extreme-coord *cells* way)))
+             (setf (getf *extreme-points-grow* way) (if old-coord (- new-coord old-coord) 0))
+             (setf (getf *extreme-points* way) new-coord)))
+
       (update-generation-timer)
       (gol:next-generation *cells*))))
 
@@ -37,18 +47,21 @@
 (defun display-borders()
   (with-pushed-matrix
     (gl:line-width 10)
-    (gl:material :front :ambient-and-diffuse #(1 1 0 1.0)) ; red
+    (gl:material :front :ambient-and-diffuse #(1 .5 0 1.0)) ; red
     (gl:with-primitives :line-strip
-                        (let ((up (- (gol:extreme-coord *cells* :up) 0.5))
-                              (down (- (gol:extreme-coord *cells* :down) 0.5))
-                              (left (- (- (gol:extreme-coord *cells* :left) 0.5)))
-                              (right (- (- (gol:extreme-coord *cells* :right) 0.5))))
-                        (gl:vertex up left .5)
-                        (gl:vertex up right .5)
-                        (gl:vertex down right .5)
-                        (gl:vertex down left .5)))))
+                        (incf *display-borders-counter*)
+                        (unless (null *extreme-points*)
+                        (let* ((lambda (lambda (way fun)(funcall fun (gol:extreme-coord *cells* way) (+ (getf *extreme-points* way) (* *display-borders-counter* (/ (getf *extreme-points-grow* way) 200))))))
+                              (lambda2 (lambda (way)(min (gol:extreme-coord *cells* way) (+ (getf *extreme-points* way) (* *display-borders-counter* (/ (getf *extreme-points-grow* way) 200))))))
+                              (up (- (funcall lambda :up #'max) 0.5))
+                              (down (- (funcall lambda :down #'min) 0.5))
+                              (left (- (- (funcall lambda :left #'max) 0.5)))
+                              (right (- (- (funcall lambda :right #'min) 0.5))))
+                          (dolist (i (list (list up left) (list up right) (list down right) (list down left) (list up left)))
+                            (gl:vertex (first i) (second i) .5)))))))
 
 (defun update-generation-timer()
+  (setf *display-borders-counter* 0)
   (setf *generation-timer* (get-universal-time)))
 
 (defun toggle-pause()
@@ -88,7 +101,7 @@
   (gl:clear :color-buffer :depth-buffer)
   (gl:load-identity) ; clear the matrix
   ;; viewing transformation
-  (glu:look-at 0 0 10 0 0 0 0 1 0)
+  (glu:look-at 0 0 (* (max (x-size *cells*) (y-size *cells*)) 2) 0 0 0 0 2 0)
   ;; modeling transformation
   (gl:scale 1 1 1)
   (display-chooser)
@@ -111,6 +124,9 @@
   (gl:load-identity)
   (glut:post-redisplay))
 
+(defun setxycell-by-chooser-coords()
+  (setxycell (first *chooser-coords*) (second *chooser-coords*) *cells* t))
+
 (defmethod glut:keyboard ((w cube-window) key x y)
   (declare (ignore x y))
   (move-chooser (case key 
@@ -123,7 +139,7 @@
     (progn
       (case key
         (#\Space (toggle-pause))
-        (#\Return (setxycell (first *chooser-coords*) (second *chooser-coords*) *cells* t))
+        (#\Return (setxycell-by-chooser-coords))
         (#\Esc )
         (t (print key)))
       (glut:post-redisplay))))
@@ -140,11 +156,11 @@
 #+l(defmethod glut:mouse ((w cube-window) button state x y)
   (format t "~A~%" (list w button state x y)))
 
-(defun rb-cube ()
+(defun run-game-of-life()
   (glut:display-window (make-instance 'cube-window)))
 
 (defun run ()
   "Run application"
   (let ((glut:*run-main-loop-after-display* nil)(*cells* (make-live-cells '((nil nil nil t)(t t t nil)(t nil nil nil)(nil t nil t)))))
-      (rb-cube)
+      (run-game-of-life)
     (glut:main-loop)))

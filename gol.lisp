@@ -24,7 +24,7 @@
 
 (in-package :gol)
 
-(export '(xycell cell live-neighbours-count cell-value next-generation do-cells setxycell list-or-live-cells-instance-to-list make-live-cells cells-matrix extreme-coord cells-x-out cells-y-out))
+(export '(xycell cell live-neighbours-count cell-value next-generation do-cells setxycell list-or-live-cells-instance-to-list make-live-cells cells-matrix extreme-coord cells-x-out cells-y-out y-size x-size))
 
 (defclass live-cells()
   ((cells-matrix
@@ -46,6 +46,12 @@
     (:down (- (length (slot-value live-cells 'cells-matrix)) (slot-value live-cells 'cells-y-out)))
     (:left (- (slot-value live-cells 'cells-x-out)))
     (:right (- (length (first (slot-value live-cells 'cells-matrix))) (slot-value live-cells 'cells-x-out)))))
+
+(defmethod y-size(live-cells)
+  (length (slot-value live-cells 'cells-matrix)))
+
+(defmethod x-size(live-cells)
+  (length (first (slot-value live-cells 'cells-matrix))))
 
 
 (defun make-live-cells(&optional cells)
