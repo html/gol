@@ -70,11 +70,12 @@
 
 (defun display-pause-status()
   (with-pushed-matrix
-    (let ((coords (multiple-value-list (glu:un-project (first *pause-status-coords*) (second *pause-status-coords*) 0))))
+    (let ((coords (multiple-value-list (glu:un-project (- (first *pause-status-coords*) 50) (- (second *pause-status-coords*) 50) (aref (gl:read-pixels 100 100 1 1 :depth-component :float) 0)))))
             (gl:color 1.0 0 0)
-          (setf (nth 2 coords) 0)
+          #+l(setf (nth 2 coords) 0)
           (apply #'gl:translate coords)
-          (glut:solid-cube 1))))
+          (if *paused* (glut:solid-cube 5) (glut:solid-sphere 5 50 50))
+          )))
 
 (defun move-chooser(way)
   (case way
@@ -107,7 +108,7 @@
   (display-chooser)
   (display-cells)
   (display-borders)
-  #+l(display-pause-status)
+  (display-pause-status)
   (gl:flush)
   (glut:swap-buffers))
   
