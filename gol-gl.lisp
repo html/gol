@@ -16,7 +16,8 @@
 
 (defun display-cells()
   (gl:line-width 1)
-  (gl:material :front :ambient-and-diffuse #(1.0 1.0 1.0 1.0)) ; red
+  #+l(gl:material :front :ambient-and-diffuse #(1.0 1.0 1.0 1.0))
+  (gl:color 1.0 1.0 1.0)
 
   (do-cells *cells*
             (let ((x gol::x)(y gol::y)(cell gol::cell))
@@ -39,26 +40,27 @@
       (gol:next-generation *cells*))))
 
 (defun display-chooser()
+  #+l(gl:material :front :ambient-and-diffuse #(1.0 0 0 1.0))
+  (gl:color 0.0 1.0 0.0)
   (with-pushed-matrix
-    #+l(gl:color 0.5 0 0)
     (gl:translate (first *chooser-coords*) (- (second *chooser-coords*)) 1)
   (glut:solid-torus 0.1 0.3 4 20)))
 
 (defun display-borders()
+  (gl:color 1 1 1)
   (with-pushed-matrix
-    (gl:line-width 10)
-    (gl:material :front :ambient-and-diffuse #(1 .5 0 1.0)) ; red
+    (gl:line-width 2)
+    (gl:material :front :ambient-and-diffuse #(1 1 1 1.0)) ; red
     (gl:with-primitives :line-strip
                         (incf *display-borders-counter*)
                         (unless (null *extreme-points*)
-                        (let* ((lambda (lambda (way fun)(funcall fun (gol:extreme-coord *cells* way) (+ (getf *extreme-points* way) (* *display-borders-counter* (/ (getf *extreme-points-grow* way) 200))))))
-                              (lambda2 (lambda (way)(min (gol:extreme-coord *cells* way) (+ (getf *extreme-points* way) (* *display-borders-counter* (/ (getf *extreme-points-grow* way) 200))))))
+                        (let* ((lambda (lambda (way fun)(funcall fun (gol:extreme-coord *cells* way) (+ (getf *extreme-points* way) (* *display-borders-counter* (/ (getf *extreme-points-grow* way) 100))))))
                               (up (- (funcall lambda :up #'max) 0.5))
                               (down (- (funcall lambda :down #'min) 0.5))
                               (left (- (- (funcall lambda :left #'max) 0.5)))
                               (right (- (- (funcall lambda :right #'min) 0.5))))
                           (dolist (i (list (list up left) (list up right) (list down right) (list down left) (list up left)))
-                            (gl:vertex (first i) (second i) .5)))))))
+                            (gl:vertex (first i) (second i) 1)))))))
 
 (defun update-generation-timer()
   (setf *display-borders-counter* 0)
@@ -69,13 +71,25 @@
   (setf *paused* (not *paused*)))
 
 (defun display-pause-status()
-  (with-pushed-matrix
-    (let ((coords (multiple-value-list (glu:un-project (- (first *pause-status-coords*) 50) (- (second *pause-status-coords*) 50) (aref (gl:read-pixels 100 100 1 1 :depth-component :float) 0)))))
-            (gl:color 1.0 0 0)
-          #+l(setf (nth 2 coords) 0)
-          (apply #'gl:translate coords)
-          (if *paused* (glut:solid-cube 5) (glut:solid-sphere 5 50 50))
-          )))
+    (let* ((width (first *pause-status-coords*))
+           (height (second *pause-status-coords*))
+           (radius 5))
+          (gl:color 1.0 1.0 .0)
+          (gl:rotate 90 0 1 0)
+          (with-pushed-matrix
+          (if (not *paused*)
+            (progn
+              (let ((width (- width (/ width 10)))
+                    (height (- height (/ height 10))))
+              (apply #'gl:translate (multiple-value-list (glu:un-project width height (aref (gl:read-pixels width height 1 1 :depth-component :float) 0)))))
+              (glut:solid-cube radius))
+            (progn 
+              (let ((oldwidth width)
+                    (oldheight height)
+                    (width (- width (/ width 10)))
+                    (height (- height (/ height 10))))
+              (apply #'gl:translate (multiple-value-list (glu:un-project width height (aref (gl:read-pixels width height 1 1 :depth-component :float) 0)))))
+              (glut:solid-cone (/ radius 2) radius 10 50))))))
 
 (defun move-chooser(way)
   (case way
@@ -93,7 +107,10 @@
 
 (defmethod glut:display-window :before ((w cube-window))
   (gl:light :light0 :position #(5.0 5.0 10.0 0.0))
-  (gl:enable :cull-face :lighting :light0 :depth-test)
+  (gl:enable :lighting :light0 :depth-test)
+  (gl:enable :lighting)
+  (gl:color-material :front-and-back :ambient-and-diffuse)
+  (gl:enable :color-material)
   (gl:clear-color 0 0 0 0)
   ;;;(gl:shade-model :flat)
   )
@@ -105,6 +122,7 @@
   (glu:look-at 0 0 (* (max (x-size *cells*) (y-size *cells*)) 2) 0 0 0 0 2 0)
   ;; modeling transformation
   (gl:scale 1 1 1)
+  (gl:translate -2 1 0)
   (display-chooser)
   (display-cells)
   (display-borders)
@@ -128,6 +146,12 @@
 (defun setxycell-by-chooser-coords()
   (setxycell (first *chooser-coords*) (second *chooser-coords*) *cells* t))
 
+(defun clear-cells()
+  (let ((length (length (first (slot-value *cells* 'cells-matrix)))))
+       (dotimes (i (length (slot-value *cells* 'cells-matrix)))
+         (setf (nth i (slot-value *cells* 'cells-matrix)) (make-list length))))
+  (unless *paused* (toggle-pause)))
+
 (defmethod glut:keyboard ((w cube-window) key x y)
   (declare (ignore x y))
   (move-chooser (case key 
@@ -139,6 +163,7 @@
     (glut:destroy-current-window)
     (progn
       (case key
+        (#\c (clear-cells))
         (#\Space (toggle-pause))
         (#\Return (setxycell-by-chooser-coords))
         (#\Esc )
