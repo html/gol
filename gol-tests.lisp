@@ -291,31 +291,44 @@ DESCRIBE-ing them."
      )
 
 ;;; All tests below need to be  fixed
-(addtest 'next-generation-1
+(addtest 'next-generation-with-object-1
          (let* ((cells (gol:make-live-cells 
              '((t   nil t)
              (nil nil nil)
              (t   nil t))))
                (next-gen (gol:next-generation cells)))
-         #+l(ensure (equal (print (slot-value cells 'gol:cells-matrix))
+         (ensure (equal (slot-value cells 'gol:cells-matrix)
            '((nil nil nil)
              (nil nil nil)
              (nil nil nil))))))
 
-(addtest 'next-generation-2
+(addtest 'next-generation-with-object-2
          (ensure (equal (gol:next-generation 
-           '((t   t   t)
+           (gol:make-live-cells 
+            '((t   t   t)
              (t   t   t)
-             (t   t   t)))
-           '((t   nil t)
-             (nil nil nil)
-             (t   nil t)))))
+             (t   t   t))))
+           '((nil nil  t  nil nil)
+             (nil  t  nil  t  nil)
+             ( t  nil nil nil  t )
+             (nil  t  nil  t  nil)
+             (nil nil  t  nil nil)))))
 
-(addtest 'next-generation-3
+(addtest 'next-generation-with-object-2
          (ensure (equal (gol:next-generation 
-           '((nil   t   nil)
+           (gol:make-live-cells 
+            '((t   t   t)
+             (t   t   t))))
+           '((nil  t  nil)
+             ( t  nil  t )
+             ( t  nil  t )
+             (nil  t  nil)))))
+
+(addtest 'next-generation-with-object-3
+         (ensure (equal (gol:next-generation 
+           (gol:make-live-cells '((nil   t   nil)
              (nil   t   nil)
-             (nil   t   nil)))
+             (nil   t   nil))))
            '((nil   nil nil)
              (t     t   t)
              (nil   nil nil)))))

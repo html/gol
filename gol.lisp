@@ -76,8 +76,8 @@
   `(let* ((listp (listp ,cells))
          (y (if listp ,y (+ ,y (slot-value ,cells 'cells-y-out))))
          (x (if listp ,x (+ ,x (slot-value ,cells 'cells-x-out)))))
-         (setf (nth y 
-             (nth x (if listp ,cells (slot-value ,cells 'cells-matrix)))) ,value)))
+         (setf (nth x 
+             (nth y (if listp ,cells (slot-value ,cells 'cells-matrix)))) ,value)))
 
 (defun neighbours-values(x y c)
   (list 
@@ -106,18 +106,31 @@
       (loop for y from 0 to (1- (length cells))
             collect (loop for x from 0 to (1- (length (nth y cells)))
                           collect (cell-value x y cells)))
-      (progn 
-        (let* ((matrix (slot-value cells 'cells-matrix))
-              (newmatrix (mapcar 
-                (lambda (list) (append (list nil) list (list nil)))
-                (append 
-                (list (make-list (length (first matrix))))
-                matrix
-                (list (make-list (length (first matrix))))))))
-          (setf (slot-value cells 'cells-matrix) (next-generation newmatrix))
-          (incf (slot-value cells 'cells-x-out) 1)
-          (incf (slot-value cells 'cells-y-out) 1)
-          (slot-value cells 'cells-matrix)))))
+      (let* ((matrix (slot-value cells 'cells-matrix))
+            (matrix+1-to-borders (mapcar 
+              (lambda (list) (append (list nil) list (list nil)))
+              (append 
+              (list (make-list (length (first matrix))))
+              matrix
+              (list (make-list (length (first matrix)))))))
+
+                (newestmatrix (next-generation matrix+1-to-borders))
+                (x-out 1)
+                (y-out 1))
+        (when (every #'null (car (last newestmatrix)))
+          (setf newestmatrix (butlast newestmatrix)))
+        (when (every #'null (first newestmatrix))
+          (setf y-out 0)
+          (pop newestmatrix))
+        (when (every #'null (mapcar #'first newestmatrix))
+          (setf x-out 0)
+          (setf newestmatrix (mapcar #'cdr newestmatrix)))
+        (when (every #'null (mapcar (lambda (item) (car (last item))) newestmatrix))
+          (setf newestmatrix (mapcar #'butlast newestmatrix)))
+        (setf (slot-value cells 'cells-matrix) newestmatrix)
+        (incf (slot-value cells 'cells-x-out) x-out)
+        (incf (slot-value cells 'cells-y-out) y-out)
+        (slot-value cells 'cells-matrix))))
                       
 (defmacro do-cells(cells &body body)
     `(let* ((listp (listp ,cells))
@@ -126,6 +139,6 @@
             (yt (if listp 0 (slot-value ,cells 'cells-y-out))))
             (dotimes (y (length cells))
                 (dotimes (x (length (nth y cells)))
-                   (let ((cell (nth y (nth x cells))))
+                   (let ((cell (nth x (nth y cells))))
                       (funcall (lambda (x y cell)
                                  ,@body) (- x xt) (- y yt) cell))))))
