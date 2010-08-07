@@ -20,5 +20,6 @@
 ;;;; SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 (load "gol.asd")
+(require :cl-opengl)
 (require :gol-gl-frontend)
 (gol-gl-frontend:run)

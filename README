@@ -1,0 +1,38 @@
+This is implementation of Conway's Game of Life that uses power of Lisp and OpenGl.
+If you don't know what Game of Life is, please refer to wikipedia ( http://en.wikipedia.org/wiki/Conway's_Game_of_Life )
+
+To launch it simply use following command 
+
+sbcl-run run-gl.lisp
+
+or enter lisp interpreter and load "run-gl.lisp" file 
+
+This program is tested only with sbcl lisp implementation. 
+You need to install additional libraries to make program work. 
+Just try to execute program and you'll see what are missing ;)
+
+Shortcuts 
+
+<Up> or <w>     - move up
+<Down> or <s>   - move down
+<Left> or <a>   - move left
+<Right> or <d>  - move right
+<Space>         - toggle pause
+<Return>         - make cell live or dead
+<f>             - toggle fixed coord grid
+
+<t>             - add empty row to the top side of the grid
+<b>             - add empty row to the bottom side of the grid
+<l>             - add empty row to the left side of the grid
+<r>             - add empty row to the right side of the grid
+
+<T>             - remove row from the top side of the grid
+<B>             - remove row from the bottom side of the grid
+<L>             - remove row from the left side of the grid
+<R>             - remove row from the right side of the grid
+
+<c>             - clear all cells (make them dead)
+<n>             - force new generation (especially useful when paused)
+
+<+>             - increase automatic generations speed
+<->             - decrease automatic generations speed

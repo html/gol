@@ -48,7 +48,8 @@
          (nil nil t)
          (t   t   t)))
   (setf (slot-value *cells* 'cells-x-out) 0)
-  (setf (slot-value *cells* 'cells-y-out) 0))
+  (setf (slot-value *cells* 'cells-y-out) 0)
+  (setf *chooser-coords* (list 0 0)))
 
 (defun update-generation()
   (let ((old-extreme-points nil))
@@ -138,12 +139,51 @@
               (apply #'gl:translate (pixel->coords (- width 25) height))
               (glut:solid-cone (/ radius 2) radius 10 50)))))))
 
+(defun add-row(way)
+  (let ((row (lambda() (list (make-list (length (first (slot-value *cells* 'cells-matrix))))))))
+  (case way
+    (:up (setf (slot-value *cells* 'cells-matrix) (append (funcall row) (slot-value *cells* 'cells-matrix)))
+         (incf (slot-value *cells* 'cells-y-out)))
+    (:down (setf (slot-value *cells* 'cells-matrix) (append (slot-value *cells* 'cells-matrix) (funcall row))))
+    (:left (setf (slot-value *cells* 'cells-matrix) (mapcar (lambda (item) (append (list nil) item)) (slot-value *cells* 'cells-matrix)))
+         (incf (slot-value *cells* 'cells-x-out)))
+    (:right (setf (slot-value *cells* 'cells-matrix) (mapcar (lambda (item) (append item (list nil))) (slot-value *cells* 'cells-matrix)))))))
+
+(defun remove-row(way)
+  (case way
+    (:up 
+      (when (> (y-size *cells*) 1)
+        (pop (slot-value *cells* 'cells-matrix))
+        (decf (slot-value *cells* 'cells-y-out))
+        (if (chooser-out-of-bounds-p) (incf (second *chooser-coords*)))))
+    (:down 
+      (when (> (y-size *cells*) 1)
+          (setf (slot-value *cells* 'cells-matrix) (butlast (slot-value *cells* 'cells-matrix)))
+          (if (chooser-out-of-bounds-p) (decf (second *chooser-coords*)))))
+    (:left
+      (when (> (x-size *cells*) 1)
+        (setf (slot-value *cells* 'cells-matrix) (mapcar #'cdr (slot-value *cells* 'cells-matrix)))
+        (if (chooser-out-of-bounds-p) (incf (first *chooser-coords*)))))
+    (:right
+      (when (> (x-size *cells*) 1)
+        (setf (slot-value *cells* 'cells-matrix) (mapcar #'butlast (slot-value *cells* 'cells-matrix)))
+        (if (chooser-out-of-bounds-p) (decf (first *chooser-coords*)))))))
+
+(defun chooser-out-of-bounds-p()
+  (or
+    (< (second *chooser-coords*) (extreme-coord *cells* :up))
+    (> (second *chooser-coords*) (extreme-coord *cells* :down))
+    (< (first  *chooser-coords*) (extreme-coord *cells* :left))
+    (> (first  *chooser-coords*) (extreme-coord *cells* :right))))
+
 (defun move-chooser(way)
   (case way
-    (:down (incf (second *chooser-coords*)))
-    (:up (decf (second *chooser-coords*)))
-    (:right (incf (first *chooser-coords*)))
-    (:left (decf (first *chooser-coords*)))))
+    (:down  (if (>= (incf (second *chooser-coords*)) (extreme-coord *cells* :down))  (add-row :down)))
+    (:up    (if (<  (decf (second *chooser-coords*)) (extreme-coord *cells* :up))    (add-row :up)))
+    (:right (if (>= (incf (first *chooser-coords*))  (extreme-coord *cells* :right)) (add-row :right)))
+    (:left  (if (<  (decf (first *chooser-coords*))  (extreme-coord *cells* :left))  (add-row :left)))))
+
+
 
 ;;;;;;;;;;;;;;;;;;; OPENGL DEFS ;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -202,11 +242,25 @@
 
 (defmethod glut:keyboard ((w cube-window) key x y)
   (declare (ignore x y))
+
   (move-chooser (case key 
                   (#\w :up)
                   (#\s :down)
                   (#\d :right)
                   (#\a :left)))
+
+  (add-row (case key
+             (#\t :up)
+             (#\b :down)
+             (#\l :left)
+             (#\r :right)))
+
+  (remove-row (case key
+                (#\T :up)
+                (#\B :down)
+                (#\L :left)
+                (#\R :right)))
+
   (if (equal key #\Esc)
     (glut:destroy-current-window)
     (progn
@@ -220,7 +274,7 @@
         (#\Space (toggle-pause))
         (#\Return (setxycell-by-chooser-coords))
         (#\Esc )
-        (t (print key)))
+        (t (format t "Unknown key pressed ~A~%" key)))
       (glut:post-redisplay))))
 
 (defmethod glut:special ((window cube-window) special-key x y)
@@ -240,6 +294,6 @@
 
 (defun run ()
   "Run application"
-  (let ((glut:*run-main-loop-after-display* nil)(*cells* (make-live-cells '((nil nil nil t)(t t t nil)(t nil nil nil)(nil t nil t)))))
+  (let ((glut:*run-main-loop-after-display* nil)(*cells* (make-live-cells '((nil t nil) (nil nil t) (t   t   t)))))
       (run-game-of-life)
     (glut:main-loop)))
