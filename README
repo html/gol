@@ -18,7 +18,7 @@ Shortcuts
 <Left> or <a>   - move left
 <Right> or <d>  - move right
 <Space>         - toggle pause
-<Return>         - make cell live or dead
+<Return>        - make cell live or dead
 <f>             - toggle fixed coord grid
 
 <t>             - add empty row to the top side of the grid
@@ -36,3 +36,5 @@ Shortcuts
 
 <+>             - increase automatic generations speed
 <->             - decrease automatic generations speed
+
+<g>             - make glider
